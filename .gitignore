@@ -1,0 +1,8 @@
+build/
+install/
+log/
+
+.ignition/
+
+tmp/
+private_datasets/

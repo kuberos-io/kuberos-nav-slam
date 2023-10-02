@@ -1,0 +1,27 @@
+version: '3.9'
+
+services:
+  ros-core:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+      # args:
+        # On Linux, you may need to update USER_UID and USER_GID below if not your local UID is not 1000.
+        # USER_UID: 1000
+        # USER_GID: 1000
+
+    volumes:
+      - ..:/workspace:cached
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - /dev:/dev # libEGL for Gazebo needs access to /dev/dri/renderD129
+
+    network_mode: 'host'
+    environment:
+      DISPLAY: $DISPLAY
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: all
+    runtime: nvidia
+
+    # Overrides default command so things don't shut down after the process ends.
+    command: sleep infinity
+    privileged: true
