@@ -1,5 +1,30 @@
-# Nav2 + Ignition
+# Nav2 with KubeROS
 
+This repository contains a navigation software stack based on Nav2 and Gazebo Ignition on Turtlebot4 to demonstrate the applicability of the proposed closed-loop workflow with KubeROS and its scalability in both development and deployment phases.
+
+The typical development cycle for a navigation system for an autonomous mobile robot (AMR) includes the following steps:
+ - Comparing algorithms on benchmark datasets 
+ - Simulation-based integration, parameter study, testing
+ - validation on real robots
+ - deployment to a robot fleets (more than one robot)
+
+We use one microservice-oriented, fully containerized software stack to go through all phases with only minimum change on parameters. Following the pattern, we separete the code and parameters not only in development but also in deployment. The parameters are loaded by KubeROS as `ConfigMap` in Kubernetes and can be easily adapted at run time and in each phase. By using the `BatchJob`, you can run the experiments in very large scale, to find a better sensor setup, optimize the parameter, test the software in various scenes. The software with the our pre-built containers (in Docker Hub) can be easily deployed on any self-hosted KubeROS plattform. 
+
+
+In example, we use following setup. Later, we will upload a tutorial to show you how to adapt it with your own robots, algorithms, simulation:
+ - Robot: Turtlebot 4 
+ - Simulation: Gazebo Ignition
+ - Environment: Warehouse
+ - Navigation stack: Nav2 (with the default planner, and default behavior tree)
+ - Localization approaches: AMCL, RTABMap, and SLAM Toolbox
+
+
+
+To 
+
+
+
+## Development
 
 Run it in local:
 ```bash
@@ -13,8 +38,6 @@ docker run -it --rm \
 
 Visualize with NoVNC in browser: `http://localhost:8080/`
 
-
-## Launch in Development
 
 **All in One Launch**
 ```bash
