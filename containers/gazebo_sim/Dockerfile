@@ -7,15 +7,8 @@ ARG NOVNC_VERSION=1.3.0
 
 SHELL ["/bin/bash", "-xo", "pipefail", "-c"]
 
-# Default environment variables
-ENV DISPLAY :0
-ENV XDG_RUNTIME_DIR /tmp/runtime-user
-ENV SIZEW 800
-ENV SIZEH 600
-ENV DPI 96
-ENV CDEPTH 24
-ENV DEBIAN_FRONTEND=noninteractive 
-ENV QT_X11_NO_MITSHM 1
+ENV DEBIAN_FRONTEND=noninteractive
+
 
 RUN if [ -n "${APT_MIRROR}" ]; then \
     sed -i -r "s;http://security.ubuntu.com/ubuntu/;[trusted=yes] ${APT_MIRROR};g" /etc/apt/sources.list && \
@@ -32,21 +25,6 @@ RUN curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o 
 RUN if [ -n "${ROS_APT_MIRROR}" ]; then \
     sed -i -r "s;http://packages.ros.org/ros2/ubuntu;[arch=amd64 signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] ${ROS_APT_MIRROR};g"  /etc/apt/sources.list.d/ros2-latest.list \
     ;fi
-
-RUN apt-get update && apt-get upgrade --no-install-recommends -q -y \
-    && rm -rf /var/lib/apt/lists/*
-
-##############################################################
-####       Gazebo Ignition && Turtlebot4-Simulator        ####
-##############################################################
-RUN apt-get update && \
-    apt install -y --no-install-recommends \
-    ignition-fortress \
-    ros-${ROS_DISTRO}-turtlebot4-simulator \
-    xvfb \
-    python3-transforms3d \
-    openbox && \
-    rm -rf /var/lib/apt/lists/* 
 
 
 ##############################################################
@@ -66,8 +44,15 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
 ####             Setup Software Rendering                 ####
 ##############################################################
 RUN apt-get update && \
+    apt install -y --no-install-recommends \
+    xvfb \
+    openbox && \
+    rm -rf /var/lib/apt/lists/* 
+
+RUN apt-get update && \
     apt -y install llvm bison flex scons libdrm-dev libxcb-glx0-dev libx11-xcb-dev libxcb-dri2-0-dev libelf-dev libxcb-xfixes0-dev meson wget python3-mako libxext-dev libxcb-randr0-dev libxrandr-dev && \
     rm -rf /var/lib/apt/lists/*
+
 RUN cd /tmp && \
     wget https://archive.mesa3d.org/mesa-21.3.6.tar.xz && \
     tar xf mesa-21.3.6.tar.xz && \
@@ -79,13 +64,16 @@ RUN cd /tmp && \
     ninja && \
     ninja install && \
     rm -rf /tmp/mesa-21.3.6
+
 RUN apt -y remove bison flex scons meson python3-mako && \
     apt -y autoremove
+
 RUN echo "#!/bin/sh" > /usr/bin/x2goglx2
 RUN echo "LD_PRELOAD=/usr/local/lib/x86_64-linux-gnu/libGL.so.1 exec \"\$@\"" >> /usr/bin/x2goglx2
 RUN chmod +x /usr/bin/x2goglx2
 RUN echo "/usr/local/lib/x86_64-linux-gnu" > /etc/ld.so.conf.d/libgl.conf
 RUN ldconfig
+
 
 COPY src/utils/startx11_virtual.sh /
 COPY src/utils/check_ign_running.sh /
@@ -97,7 +85,15 @@ COPY src/utils/get_ign_exports.py /usr/bin
 ##############################################################
 # CycloneDDS
 RUN apt-get update && \
-    apt -y install ros-${ROS_DISTRO}-rmw-cyclonedds-cpp && \
+    apt install -y --no-install-recommends \
+        ros-${ROS_DISTRO}-rmw-cyclonedds-cpp && \
+    rm -rf /var/lib/apt/lists/*
+# Gazebo, Turtlebot4 simulator, python3-transform3d
+RUN apt-get update && \
+    apt install -y --no-install-recommends \
+        ignition-fortress \
+        ros-${ROS_DISTRO}-turtlebot4-simulator \
+        python3-transforms3d && \
     rm -rf /var/lib/apt/lists/*
 
 
@@ -123,5 +119,15 @@ ADD .ignition /root/.ignition
 
 COPY entrypoint.sh /
 ENTRYPOINT [ "/entrypoint.sh" ]
+
+# Environment variables
+ENV DISPLAY :0
+ENV XDG_RUNTIME_DIR /tmp/runtime-user
+ENV SIZEW 1600
+ENV SIZEH 1200
+ENV DPI 96
+ENV CDEPTH 24
+ENV QT_X11_NO_MITSHM 1
+
 
 CMD x2goglx2 ros2 launch tb4_bringup turtlebot4_ignition.launch.py world_var:=D1 headless:=False publish_pose_from_ign:=True
