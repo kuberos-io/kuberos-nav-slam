@@ -110,6 +110,7 @@ ADD src/utils/check_ign_running.sh /
 ADD src/utils/get_ign_exports.py /usr/bin
 
 ADD src/tb4_bringup /ws/src/tb4_bringup
+ADD src/sim_data_publisher /ws/src/sim_data_publisher
 
 # Build
 RUN cd /ws \
@@ -123,4 +124,4 @@ ADD .ignition /root/.ignition
 COPY entrypoint.sh /
 ENTRYPOINT [ "/entrypoint.sh" ]
 
-CMD x2goglx2 ros2 launch tb4_bringup turtlebot4_ignition.launch.py world_var:=D1 headless:=False
+CMD x2goglx2 ros2 launch tb4_bringup turtlebot4_ignition.launch.py world_var:=D1 headless:=False publish_pose_from_ign:=True

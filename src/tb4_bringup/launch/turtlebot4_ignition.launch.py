@@ -18,29 +18,39 @@ from ament_index_python.packages import get_package_share_directory
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
-from launch.actions import IncludeLaunchDescription
+from launch.actions import IncludeLaunchDescription, Shutdown
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch.conditions import IfCondition
+from launch_ros.actions import Node
 
 
 ARGUMENTS = [
     
     DeclareLaunchArgument('namespace', default_value='',
                           description='Robot namespace'),
+    
     # Ignition setup
     DeclareLaunchArgument('world', default_value='warehouse',
                           description='Ignition World'),
+    
     DeclareLaunchArgument('world_var', default_value='',
                           description='World variation - select the randomized world model (sdf)'),
     
     DeclareLaunchArgument('model', default_value='standard',
                           choices=['standard', 'lite'],
                           description='Turtlebot4 Model'),
+    
     DeclareLaunchArgument('launch_simulation', default_value='True',
                           description='Set "false" to skip simulation startup.'),
+    
     DeclareLaunchArgument('headless', default_value='True',
                           description='Start Igniton GUI or not'),
+    
+    DeclareLaunchArgument('publish_pose_from_ign',
+                          default_value='False',
+                          description='Set "False" to skip publication of groundtruth pose'),
+    
 ]
 
 # Inital robot pose in the world
@@ -59,6 +69,8 @@ def generate_launch_description():
     arg_namespace = LaunchConfiguration('namespace')
     arg_world = LaunchConfiguration('world')
     arg_world_var = LaunchConfiguration('world_var')
+    
+    arg_publish_pose_from_ign = LaunchConfiguration('publish_pose_from_ign')
     
     arg_model = LaunchConfiguration('model')
     arg_headless = LaunchConfiguration('headless')
@@ -93,8 +105,24 @@ def generate_launch_description():
             ('yaw', LaunchConfiguration('yaw'))]
     )
 
+    ign_pose_pub_node = Node(
+        condition=IfCondition(arg_publish_pose_from_ign),
+        package='sim_data_publisher',
+        executable='sim_data_publisher',
+        name='sim_data_publisher',
+        parameters=[{
+            'use_sim_time': True,
+            'world_name': arg_world,
+            # 'publish_tf': LaunchConfiguration('publish_groundtruth_localization'),
+            'publish_tf': False, #  LaunchConfiguration('publish_groundtruth_localization'),
+            'robot_id': 'turtlebot4'}],
+        output='screen',
+        on_exit=Shutdown()
+    )
+    
     # Create launch description
     ld = LaunchDescription(ARGUMENTS)
     ld.add_action(ignition)
     ld.add_action(robot_spawn)
+    ld.add_action(ign_pose_pub_node)
     return ld
