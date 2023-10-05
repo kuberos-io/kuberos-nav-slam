@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>rosbag_recording</name>
+  <version>0.0.0</version>
+  <description>Recording the data including: groundtruth pose, estimated pose, task execution status</description>
+  <maintainer email="TODO@TODO.com">TODO</maintainer>
+  <license>TODO: License declaration</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <!-- <exec_depend>tb4_bringup</exec_depend> -->
+  <!-- <exec_depend>nav_to_pose</exec_depend> -->
+  <!-- <exec_depend>nav2_bringup_extended</exec_depend> -->
+  <!-- <exec_depend>sim_data_publisher</exec_depend> -->
+  <exec_depend>pose_to_static_tf</exec_depend>
+  <exec_depend>tf_to_pose</exec_depend>
+  <exec_depend>rgbd_tum_world_to_map_tf</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
