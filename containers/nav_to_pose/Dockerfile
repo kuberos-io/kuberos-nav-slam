@@ -22,9 +22,6 @@ RUN if [ -n "${ROS_APT_MIRROR}" ]; then \
     sed -i -r "s;http://packages.ros.org/ros2/ubuntu;[arch=amd64 signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] ${ROS_APT_MIRROR};g"  /etc/apt/sources.list.d/ros2-latest.list \
     ;fi
 
-RUN apt-get update && apt-get upgrade --no-install-recommends -q -y \
-    && rm -rf /var/lib/apt/lists/*
-
 
 ##############################################################
 ####                     ROS Packages                     ####

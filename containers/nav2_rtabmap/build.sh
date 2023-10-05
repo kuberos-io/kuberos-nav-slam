@@ -9,6 +9,6 @@ echo "From Context: $PWD"
 DOCKER_BUILDKIT=1 docker build \
   --build-arg ROS_DISTRO=$ROS_DISTRO \
   $@ \
-  -t nav2_bringup_extended_${ROS_DISTRO}:latest \
+  -t nav2_rtabmap_${ROS_DISTRO}:latest \
   -f $BASEDIR/Dockerfile \
   $PWD
