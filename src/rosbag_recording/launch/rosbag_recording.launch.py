@@ -23,7 +23,7 @@ ARGUMENTS = [
     
     # Nav to pose task setup
     DeclareLaunchArgument('start_pose',
-                          default_value='0.0,0.0,0.0',
+                          default_value="'0.0,0.0,0.0'",
                           description='Start pose in navigation task'),
     DeclareLaunchArgument('use_sim_time',
                           default_value='true',
@@ -75,7 +75,7 @@ ARGUMENTS = [
 def generate_launch_description():
 
     # Directories
-    pkg_nav2_edge_eval =  get_package_share_directory('nav2_edge_eval')
+    pkg_rosbag_recording =  get_package_share_directory('rosbag_recording')
 
     # Launch args
     arg_start_pose = LaunchConfiguration('start_pose')
@@ -198,7 +198,7 @@ def generate_launch_description():
     
     play_dataset = ExecuteProcess(
         name='rosbag_play',
-        cmd=["ros2", "bag", "play", '--clock', '100', '--rate', arg_input_dataset_playback_rate, '--qos-profile-overrides-path',  PathJoinSubstitution([pkg_nav2_edge_eval, 'params', 'rosbag_play.yaml']), arg_input_dataset],
+        cmd=["ros2", "bag", "play", '--clock', '100', '--rate', arg_input_dataset_playback_rate, '--qos-profile-overrides-path',  PathJoinSubstitution([pkg_rosbag_recording, 'params', 'rosbag_play.yaml']), arg_input_dataset],
         output='screen',
         on_exit=Shutdown()
     )
