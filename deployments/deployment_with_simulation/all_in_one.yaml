@@ -1,0 +1,70 @@
+apiVersion: v1
+kind: ApplicationDeployment
+metadata:
+  name: nav2-example
+  rosVersion: humble
+  appVersion: dev-1
+  targetFleet: xx
+  targetRobots: ['simbot-1']
+  edgeResourceGroup: ['public'] # default
+
+rosModules:
+  - name: simulated-robot
+    image: metagoto/tb4_nav2_all_in_one:humble-v0.2.2
+    entrypoint: ["/entrypoint.sh x2goglx2 ros2 launch nav2_edge_all_in_one_launch nav2_edge_eval.launch.py"]
+    sourceWs: /ws/install
+    preference: [onboard] # Preference for scheduler
+    requirements:
+      latency: 50ms
+      dynamicRescheduling: false
+      privilege: true
+      peripheral: ['ur-robot']
+      nvidia: false
+
+    launchParameters: #
+      record_rosbag: {launch-parameters.record_rosbag}
+      rosbag_topics: {launch-parameters.rosbag_topics}
+      world: {launch-parameters.world}
+      world_var: {launch-parameters.world_var}
+      headless: {launch-parameters.headless}
+      start_pose: {launch_parameters.start_pose}
+      goal_poses: {launch-parameters.goal_poses}
+      experiment_name: {launch-parameters.experiment_name}
+      localization_method: {launch-parameters.localization_method}
+
+    rosParameters:
+      - name: launch-parameters
+        type: key-value
+        valueFrom: nav2-edge-eval-parameters
+      - name: environment-variables
+        type: key-value
+        valueFrom: ign-env-parameters
+
+rosParamMap:
+
+  - name: nav2-edge-eval-parameters
+    type: key-value
+    data:
+      RMW_IMPLEMENTATION: rmw_cyclonedds_cpp
+
+      record_rosbag: true
+      world: warehouse # warehouse / maze / depot
+      world_var: 'C0'
+      start_pose: '0.0,0.0,0.0'
+      goal_poses: "'0.0,-0.5,0;-2,-0.5,0;-3,-2.5,0;-0.3,-6,0'"
+      localization_method: rtabmap  # slamtoolbox / amcl / rtabmap
+      loop_execution: false
+      experiment_name: maze_short_trip
+      use_sim_time: true
+      rosbag_topics: "'/groundtruth_pose; /base_link_pose; /tf; /tf_static; /task_status; /diagnostics'"
+
+  - name: ign-env-parameters
+    type: key-value
+    data:
+      headless: true
+      IGN_PARTITION: 'sim'
+      STARTX11: true
+      NOVNC_ENABLE: true
+      WINDOW_MANAGER_ENABLE: true
+      SIZEW: '1920'
+      SIZEH: '1080'

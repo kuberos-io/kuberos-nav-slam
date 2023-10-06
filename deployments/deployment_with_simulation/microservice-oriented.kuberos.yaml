@@ -1,0 +1,129 @@
+apiVersion: v1
+kind: ApplicationDeployment
+metadata:
+  name: nav2-example
+  rosVersion: humble
+  appVersion: dev-1
+  targetFleet: xx
+  targetRobots: ['simbot-1']
+  edgeResourceGroup: ['public'] # default
+
+rosModules:
+  - name: simulated-robot
+    image: metagoto/gazebo_sim_tb4:humble-v0.2.2
+    entrypoint: ["/entrypoint.sh x2goglx2 ros2 launch tb4_bringup turtlebot4_ignition.launch.py"]
+    sourceWs: /ws/install
+
+    preference: [onboard] # Preference for scheduler
+    requirements:
+      latency: 50ms
+      dynamicRescheduling: false
+      privilege: true
+      peripheral: ['ur-robot']
+
+    launchParameters:
+      world: {launch-parameters.world}
+      world_var: {launch-parameters.world_var}
+      headless: {launch-parameters.headless}
+      start_pose: {launch-parameters.start_pose}
+      publish_pose_from_ign: {launch-parameters.publish_pose_from_ign}
+
+
+    rosParameters:
+      - name: launch-parameters
+        type: key-value
+        valueFrom: nav2-edge-eval-parameters
+      - name: environment-variables
+        type: key-value
+        valueFrom: ign-env-parameters
+
+
+  - name: nav2-stack
+    image: metagoto/nav2_stack_extended:humble-v0.2.2
+    entrypoint: ["/entrypoint.sh ros2 launch -d nav2_bringup_extended nav2_bringup_extended.launch.py use_composition:=False autostart:=False"]
+    # entrypoint: ["/entrypoint.sh ros2 launch nav2_bringup_extended nav2_bringup_extended.launch.py use_sim_time:=True use_composition:=False autostart:=False localization:=rtabmap params_file:=/ws/src/nav2_bringup_extended/params/params.yaml"]
+    sourceWs: /ws/install
+
+    preference: [onboard] # Preference for scheduler
+    requirements:
+      latency: 50ms
+      dynamicRescheduling: false
+      privilege: true
+      peripheral: ['ur-robot']
+      containerRuntime: containerd/docker 
+
+    launchParameters: 
+      world: {launch-parameters.world}
+      world_var: {launch-parameters.world_var}
+      params_file: {launch-parameters.params_file}
+      localization_method: {launch-parameters.localization_method}
+      use_sim_time: {launch-parameters.use_sim_time}
+    
+    rosParameters:
+      - name: launch-parameters
+        type: key-value
+        valueFrom: nav2-edge-eval-parameters
+
+  - name: task-controller-nav-to-pose
+    image: metagoto/task_nav_to_pose:humble-v0.2.2
+    entrypoint: ["/entrypoint.sh ros2 run nav_to_pose nav_to_pose use_sim_time:=True --launch-navigation True --localization-mode rtabmap --goal '0,-0.5,0;-2,-0.5,0;-3,-2.5,0;-0.3,-7,0'"]
+    sourceWs: /ws/install
+
+    preference: [onboard] # Preference for scheduler
+    requirements:
+      latency: 50ms
+      dynamicRescheduling: false
+      privilege: true
+      peripheral: ['ur-robot']
+      containerRuntime: containerd/docker 
+
+  - name: rosbag-recording
+    image: metagoto/rosbag_recording_nav2:humble-v0.2.2
+    entrypoint: ["/entrypoint.sh ros2 launch rosbag_recording rosbag_recording.launch.py"]
+    sourceWs: /ws/install
+    preference: [onboard] # Preference for scheduler
+
+    launchParameters:
+      record_rosbag: {launch-parameters.record_rosbag}
+      rosbag_topics: {launch-parameters.rosbag_topics}
+      start_pose: {launch-parameters.start_pose}
+      world: {launch-parameters.world}
+      experiment_name: {launch-parameters.experiment_name}
+      localization_method: {launch-parameters.localization_method}
+
+    rosParameters:
+      - name: launch-parameters
+        type: key-value
+        valueFrom: nav2-edge-eval-parameters
+
+
+rosParamMap:
+
+  - name: nav2-edge-eval-parameters
+    type: key-value
+    data:
+      RMW_IMPLEMENTATION: rmw_cyclonedds_cpp
+
+      publish_pose_from_ign: true
+      record_rosbag: true
+      world: warehouse # warehouse / maze / depot
+      world_var: 'D1'
+      start_pose: "'0.0,0.0,0.0'"
+      goal_poses: "'0.0,-0.5,0;-2,-0.5,0;-3,-2.5,0;-0.3,-6,0'"
+      localization_method: rtabmap  # slamtoolbox / amcl / rtabmap
+      loop_execution: false
+      experiment_name: warehouse_test
+      use_sim_time: 'True'
+      rosbag_topics: "'/groundtruth_pose; /base_link_pose; /tf; /tf_static; /task_status; /diagnostics'"
+      params_file: "/ws/src/nav2_bringup_extended/params/params.yaml"
+      headless: true
+
+  - name: ign-env-parameters
+    type: key-value
+    data:
+      IGN_PARTITION: 'sim'
+      STARTX11: true
+      NOVNC_ENABLE: true
+      WINDOW_MANAGER_ENABLE: true
+      SIZEW: '1600'
+      SIZEH: '1200'
