@@ -8,11 +8,14 @@ The typical development cycle for a navigation system for an autonomous mobile r
  - validation on real robots
  - deployment to a robot fleets (more than one robot)
 
-We use one microservice-oriented, fully containerized software stack to go through all phases with only minimum change on parameters. Following the pattern, we separete the code and parameters not only in development but also in deployment. The parameters are loaded by KubeROS as `ConfigMap` in Kubernetes and can be easily adapted at run time and in each phase. By using the `BatchJob`, you can run the experiments in very large scale, to find a better sensor setup, optimize the parameter, test the software in various scenes. The software with the our pre-built containers (in Docker Hub) can be easily deployed on any self-hosted KubeROS plattform. 
+
+We use one microservices-oriented, fully containerized software stack to move through all phases with minimal parameter changes.
+Code and parameters are separated not only during development but also in the deployment.
+The parameters are loaded by KubeROS as `ConfigMap` in Kubernetes and can be easily adjusted at runtime and in each phase. Using the `BatchJob` you can run the experiments in very large scale to find a better sensor setup, optimize the parameters, test the software in different scenes. The software can be easily deployed on any self-hosted KubeROS platform using our pre-built containers (in Docker Hub).
 
 
-In example, we use following setup. Later, we will upload a tutorial to show you how to adapt it with your own robots, algorithms, simulation:
- - Robot: Turtlebot 4 
+In the example we use the following setup. Later we will upload a tutorial to show you how to customize it with your own robots, algorithms, simulation::
+ - Robot: Turtlebot 4
  - Simulation: Gazebo Ignition
  - Environment: Warehouse
  - Navigation stack: Nav2 (with the default planner, and default behavior tree)
@@ -20,8 +23,19 @@ In example, we use following setup. Later, we will upload a tutorial to show you
 
 
 
-To 
+## List of containers
 
+We use the microservices-oriented architecture and package each functional module in its own container. The granularity depends on the application. Below is a brief overview of all containers for this application:
+
+ - All in one container: All ROS2 packages and Gazebo in one container: 
+ - gazebo_sim: Container containing only the Gazebo instances with interfaces to ROS
+ - nav2_stack: An extended Nav2-based navigation software stack, including several localization algorithms.
+ - nav2_rtabmap: Contains only RTABMap as a localizer (in certain applications we use this approach, others are not needed).
+ - nav2_slamtoolbox: Contains slamtoolbox as localizer and its configuration parameters
+ - nav2_amcl: Contains amcl as localizer, parameters and the pre-scanned maps.
+ - nav_to_pose: A container that encapsulates the task_controller package.
+ - rosbag_recording: A container used to record the topics like truth_pose from simulation, robot trajectory, etc.
+ - rviz_viewer: A container that contains rviz2 and its plugin packages, used only in development phase.
 
 
 ## Development
@@ -74,7 +88,7 @@ ros2 launch tb4_bringup turtlebot4_ignition.launch.py world:=warehouse rviz:=fal
 
 
 ## For Testing using Docker in local
-Create a new network interface
+Create a new network interface ([Bridge network](https://docs.docker.com/network/network-tutorial-standalone/#use-user-defined-bridge-networks))
 ```bash
 docker network create --driver bridge ros-net
 ```
