@@ -54,7 +54,7 @@ ARGUMENTS = [
         description='Use simulation (Gazebo) clock if true'),
     
     DeclareLaunchArgument(
-        'localization', default_value='amcl',
+        'localization_method', default_value='rtabmap',
         description='Localization method'),
     
     DeclareLaunchArgument(
@@ -74,7 +74,7 @@ ARGUMENTS = [
         description='Automatically startup the nav2 stack'),
 
     DeclareLaunchArgument(
-        'use_composition', default_value='true',
+        'use_composition', default_value='false',
         description='Whether to use composed bringup'),
     
     DeclareLaunchArgument(
@@ -105,7 +105,7 @@ def generate_launch_description():
     
     arg_slam = LaunchConfiguration('slam')
     arg_use_sim_time = LaunchConfiguration('use_sim_time')
-    arg_localization = LaunchConfiguration('localization')
+    arg_localization_method = LaunchConfiguration('localization_method')
     arg_map_file_path = LaunchConfiguration('map_file_path')
     arg_params_file = LaunchConfiguration('params_file')
     
@@ -157,7 +157,7 @@ def generate_launch_description():
 
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(os.path.join(pkg_nav2_bringup_extended, 'launch', 'localization', 'slamtoolbox_launch.py')),
-            condition=IfCondition(PythonExpression(['"', arg_localization, '" == "slamtoolbox"'])),
+            condition=IfCondition(PythonExpression(['"', arg_localization_method, '" == "slamtoolbox"'])),
             launch_arguments={'namespace': arg_namespace,
                               'use_sim_time': arg_use_sim_time,
                               'autostart': arg_autostart,
@@ -166,7 +166,7 @@ def generate_launch_description():
 
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(os.path.join(pkg_nav2_bringup_extended, 'launch', 'localization', 'rtabmap_launch.py')),
-            condition=IfCondition(PythonExpression(['"', arg_localization, '" == "rtabmap"'])),
+            condition=IfCondition(PythonExpression(['"', arg_localization_method, '" == "rtabmap"'])),
             launch_arguments={'namespace': arg_namespace,
                               'use_sim_time': arg_use_sim_time,
                               'autostart': arg_autostart,
@@ -175,7 +175,7 @@ def generate_launch_description():
 
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(os.path.join(pkg_nav2_bringup_extended, 'launch', 'localization', 'amcl_launch.py')),
-            condition=IfCondition(PythonExpression(['"', arg_localization, '" == "amcl"'])),
+            condition=IfCondition(PythonExpression(['"', arg_localization_method, '" == "amcl"'])),
             launch_arguments={'namespace': arg_namespace,
                               'map': arg_map_file_path,
                               'use_sim_time': arg_use_sim_time,
@@ -187,7 +187,7 @@ def generate_launch_description():
 
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(os.path.join(pkg_nav2_bringup_extended, 'launch', 'localization', 'groundtruth_sim_launch.py')),
-            condition=IfCondition(PythonExpression(['"', arg_localization, '" == "groundtruth"'])),
+            condition=IfCondition(PythonExpression(['"', arg_localization_method, '" == "groundtruth"'])),
             launch_arguments={'namespace': arg_namespace,
                               'map': arg_map_file_path,
                               'use_sim_time': arg_use_sim_time,
