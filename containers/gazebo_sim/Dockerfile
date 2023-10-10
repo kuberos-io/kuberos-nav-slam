@@ -107,6 +107,7 @@ ADD src/utils/get_ign_exports.py /usr/bin
 
 ADD src/tb4_bringup /ws/src/tb4_bringup
 ADD src/sim_data_publisher /ws/src/sim_data_publisher
+ADD src/create3_sim_extended /ws/src/create3_sim_extended
 
 # Build
 RUN cd /ws \
