@@ -82,6 +82,128 @@ ros2 launch tb4_bringup turtlebot4_ignition.launch.py world:=warehouse rviz:=fal
 
 ## Deployment with KubeROS
 
+Depending on the requirements, the entire software can be decomposed into several modules with different granularities. In this example, we use an example with only three containers. For more flexibility, the nav2_stack can also be split into multiple containers.
+
+**Metadata**
+This part specifies the meta-information about the target fleet, robot, edge resource group.
+Since `Multicasting` is not supported by most `CNI` plugins, KubeROS is responsible for maintaining the communication between containers depending on the selected `RMW Implementation`. Currently `FastDDS` (default in Humble) and `CycloneDDS` are supported.
+
+```YAML
+metadata:
+  name: nav2-example
+  rosVersion: humble
+  appVersion: dev-1
+  targetFleet: xx # Contains multiple robots
+  targetRobots: ['simbot-1'] # If not specified, the software will be deployed to all robots.
+  edgeResourceGroup: ['public'] # default
+  rmwImplementation: cyclonedds # cyclonedds / fastdds
+```
+
+**Simulation Container Instance**
+To deploy and test the software with simulation, we use a standalone and also containerized instance using the `Gazebo` simulator.
+
+To deploy this container in an instance that is not allowed to use X socket forwarding, we set up a VNC server with X11 rendering inside the container. For use with X server from host, you can set `STARTX11` to `false` in `ign-env-parameters`.
+
+```YAML
+rosModules:
+  - name: simulated-robot
+    image: metagoto/gazebo_sim_tb4:humble-v0.2.3
+    entrypoint: ["/entrypoint.sh x2goglx2 ros2 launch tb4_bringup turtlebot4_ignition.launch.py"]
+    sourceWs: /ws/install
+
+    preference: [onboard] # Preference for scheduler
+
+    launchParameters:
+      world: {launch-parameters.world}
+      world_var: {launch-parameters.world_var}
+      headless: {launch-parameters.headless}
+      publish_pose_from_ign: {launch-parameters.publish_pose_from_ign}
+
+    rosParameters:
+      - name: launch-parameters
+        type: key-value
+        valueFrom: nav2-edge-eval-parameters
+      - name: environment-variables
+        type: key-value
+        valueFrom: ign-env-parameters
+```
+
+**Nav2 stack (extended)**
+This container contains several localization approaches, to switch between them just change the parameters in `rosParamMap`.
+
+```YAML
+  - name: nav2-stack
+    image: metagoto/nav2_stack_extended:humble-v0.2.3
+    entrypoint: ["ros2 launch nav2_bringup_extended nav2_bringup_extended.launch.py use_sim_time:=True use_composition:=False autostart:=False"]
+
+    preference: [edge]
+    requirements:
+      latency: 50ms
+      dynamicRescheduling: false
+      privilege: true
+
+    launchParameters: 
+      params_file: {launch-parameters.params_file}
+      localization_method: {launch-parameters.localization_method}
+    
+    rosParameters:
+      - name: launch-parameters
+        type: key-value
+        valueFrom: nav2-edge-eval-parameters
+```
+
+**Task controller**
+This module contains a ROS2 module that acts as a task coordinate to call the action server in the Nav2 stack to navigate the robot to the goal position.
+
+```YAML
+ - name: task-controller-nav-to-pose
+    image: metagoto/task_nav_to_pose:humble-v0.2.2
+    entrypoint: ["ros2 run nav_to_pose nav_to_pose use_sim_time:=True --launch-navigation True --localization-mode rtabmap --goal '0,-0.5,0;-2,-0.5,0;-3,-2.5,0;-0.3,-7,0'"]
+    sourceWs: /ws/install
+
+    preference: [onboard]
+    requirements:
+      latency: 50ms
+      dynamicRescheduling: false
+      privilege: true
+
+    rosParameters:
+      - name: launch-parameters
+        type: key-value
+        valueFrom: nav2-edge-eval-parameters
+```
+
+**rosParamMap** is the interface to pass the parameters to all containers, as key-value pair for launch parameters or via a `yaml` file to ros parameter server.
+
+```YAML
+rosParamMap:
+  - name: nav2-edge-eval-parameters
+    type: key-value
+    data:
+      publish_pose_from_ign: true
+      record_rosbag: true
+      world: warehouse
+      world_var: 'D1'
+      start_pose: "'0.0,0.0,0.0'"
+      goal_poses: "'0.0,-0.5,0;-2,-0.5,0;-3,-2.5,0;-0.3,-6,0'"
+      localization_method: rtabmap  # slamtoolbox / amcl / rtabmap
+      loop_execution: false
+      experiment_name: warehouse_test
+      use_sim_time: 'True'
+      rosbag_topics: "'/groundtruth_pose; /base_link_pose; /tf; /tf_static; /task_status; /diagnostics'"
+      params_file: "/ws/src/nav2_bringup_extended/params/params.yaml"
+      headless: true
+
+  - name: ign-env-parameters
+    type: key-value
+    data:
+      IGN_PARTITION: 'sim'
+      STARTX11: true
+      NOVNC_ENABLE: true
+      WINDOW_MANAGER_ENABLE: true
+      SIZEW: '1600'
+      SIZEH: '1200'
+```
 
 ## Evaluation with KubeROS BatchJob
 
