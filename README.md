@@ -85,7 +85,7 @@ ros2 launch tb4_bringup turtlebot4_ignition.launch.py world:=warehouse rviz:=fal
 Depending on the requirements, the entire software can be decomposed into several modules with different granularities. In this example, we use an example with only four containers. For more flexibility, the nav2_stack can also be split into multiple containers.
 
 ![Nav2 deployment example](docs/images/Nav2_Deployment_Example.png)
-<center>Simple example: Deploy to a turlebot fleet with edge server</center>
+<p style="text-align: center;">Simple example: Deploy to a turlebot fleet with edge server</p>
 
 
 **Metadata**
