@@ -7,10 +7,11 @@ metadata:
   targetFleet: xx
   targetRobots: ['simbot-1']
   edgeResourceGroup: ['public'] # default
+  rmwImplementation: cyclonedds # cyclonedds / fastdds
 
 rosModules:
   - name: simulated-robot
-    image: metagoto/gazebo_sim_tb4:humble-v0.2.2
+    image: metagoto/gazebo_sim_tb4:humble-v0.2.3
     entrypoint: ["/entrypoint.sh x2goglx2 ros2 launch tb4_bringup turtlebot4_ignition.launch.py"]
     sourceWs: /ws/install
 
@@ -19,15 +20,12 @@ rosModules:
       latency: 50ms
       dynamicRescheduling: false
       privilege: true
-      peripheral: ['ur-robot']
 
     launchParameters:
       world: {launch-parameters.world}
       world_var: {launch-parameters.world_var}
       headless: {launch-parameters.headless}
-      start_pose: {launch-parameters.start_pose}
       publish_pose_from_ign: {launch-parameters.publish_pose_from_ign}
-
 
     rosParameters:
       - name: launch-parameters
@@ -39,62 +37,62 @@ rosModules:
 
 
   - name: nav2-stack
-    image: metagoto/nav2_stack_extended:humble-v0.2.2
-    entrypoint: ["/entrypoint.sh ros2 launch -d nav2_bringup_extended nav2_bringup_extended.launch.py use_composition:=False autostart:=False"]
-    # entrypoint: ["/entrypoint.sh ros2 launch nav2_bringup_extended nav2_bringup_extended.launch.py use_sim_time:=True use_composition:=False autostart:=False localization:=rtabmap params_file:=/ws/src/nav2_bringup_extended/params/params.yaml"]
+    image: metagoto/nav2_stack_extended:humble-v0.2.3
+    entrypoint: ["ros2 launch nav2_bringup_extended nav2_bringup_extended.launch.py use_sim_time:=True use_composition:=False autostart:=False"]
     sourceWs: /ws/install
 
-    preference: [onboard] # Preference for scheduler
+    preference: [edge]
     requirements:
       latency: 50ms
       dynamicRescheduling: false
       privilege: true
-      peripheral: ['ur-robot']
-      containerRuntime: containerd/docker 
 
     launchParameters: 
-      world: {launch-parameters.world}
-      world_var: {launch-parameters.world_var}
       params_file: {launch-parameters.params_file}
       localization_method: {launch-parameters.localization_method}
-      use_sim_time: {launch-parameters.use_sim_time}
     
     rosParameters:
       - name: launch-parameters
         type: key-value
         valueFrom: nav2-edge-eval-parameters
 
+
   - name: task-controller-nav-to-pose
     image: metagoto/task_nav_to_pose:humble-v0.2.2
-    entrypoint: ["/entrypoint.sh ros2 run nav_to_pose nav_to_pose use_sim_time:=True --launch-navigation True --localization-mode rtabmap --goal '0,-0.5,0;-2,-0.5,0;-3,-2.5,0;-0.3,-7,0'"]
+    entrypoint: ["ros2 run nav_to_pose nav_to_pose use_sim_time:=True --launch-navigation True --localization-mode rtabmap --goal '0,-0.5,0;-2,-0.5,0;-3,-2.5,0;-0.3,-7,0'"]
     sourceWs: /ws/install
 
-    preference: [onboard] # Preference for scheduler
+    preference: [onboard]
     requirements:
       latency: 50ms
       dynamicRescheduling: false
       privilege: true
-      peripheral: ['ur-robot']
-      containerRuntime: containerd/docker 
-
-  - name: rosbag-recording
-    image: metagoto/rosbag_recording_nav2:humble-v0.2.2
-    entrypoint: ["/entrypoint.sh ros2 launch rosbag_recording rosbag_recording.launch.py"]
-    sourceWs: /ws/install
-    preference: [onboard] # Preference for scheduler
-
-    launchParameters:
-      record_rosbag: {launch-parameters.record_rosbag}
-      rosbag_topics: {launch-parameters.rosbag_topics}
-      start_pose: {launch-parameters.start_pose}
-      world: {launch-parameters.world}
-      experiment_name: {launch-parameters.experiment_name}
-      localization_method: {launch-parameters.localization_method}
 
     rosParameters:
       - name: launch-parameters
         type: key-value
         valueFrom: nav2-edge-eval-parameters
+
+
+  # - name: rosbag-recording
+  #   image: metagoto/rosbag_recording_nav2:humble-v0.2.2
+  #   entrypoint: ["/entrypoint.sh ros2 launch rosbag_recording rosbag_recording.launch.py"]
+  #   # entrypoint: ["sleep 3000"]
+  #   sourceWs: /ws/install
+  #   preference: [onboard] # Preference for scheduler
+
+  #   launchParameters:
+  #     record_rosbag: {launch-parameters.record_rosbag}
+  #     rosbag_topics: {launch-parameters.rosbag_topics}
+  #     start_pose: {launch-parameters.start_pose}
+  #     world: {launch-parameters.world}
+  #     experiment_name: {launch-parameters.experiment_name}
+  #     localization_method: {launch-parameters.localization_method}
+
+  #   rosParameters:
+  #     - name: launch-parameters
+  #       type: key-value
+  #       valueFrom: nav2-edge-eval-parameters
 
 
 rosParamMap:
@@ -102,8 +100,9 @@ rosParamMap:
   - name: nav2-edge-eval-parameters
     type: key-value
     data:
-      RMW_IMPLEMENTATION: rmw_cyclonedds_cpp
-
+      # RMW_IMPLEMENTATION: rmw_cyclonedds_cpp
+      # CYCLONEDDS_URI: <CycloneDDS><Domain id="any"><General><Interfaces><NetworkInterface name="eth0" multicast="false" /></Interfaces><AllowMulticast>false</AllowMulticast><EnableMulticastLoopback>true</EnableMulticastLoopback></General><Discovery><Peers><Peer address="192.168.16.5"/><Peer address="192.168.16.6"/><Peer address="192.168.16.7"/><Peer address="192.168.16.8"/><Peer address="192.168.16.9"/><Peer address="192.168.16.10"/></Peers><ParticipantIndex>auto</ParticipantIndex><MaxAutoParticipantIndex>200</MaxAutoParticipantIndex></Discovery></Domain></CycloneDDS>
+      
       publish_pose_from_ign: true
       record_rosbag: true
       world: warehouse # warehouse / maze / depot
