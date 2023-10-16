@@ -75,7 +75,7 @@ rosModules:
 
 
   # - name: rosbag-recording
-  #   image: metagoto/rosbag_recording_nav2:humble-v0.2.2
+  #   image: metagoto/rosbag_recording_nav2:humble-v0.2.3
   #   entrypoint: ["/entrypoint.sh ros2 launch rosbag_recording rosbag_recording.launch.py"]
   #   # entrypoint: ["sleep 3000"]
   #   sourceWs: /ws/install
@@ -100,9 +100,7 @@ rosParamMap:
   - name: nav2-edge-eval-parameters
     type: key-value
     data:
-      # RMW_IMPLEMENTATION: rmw_cyclonedds_cpp
-      # CYCLONEDDS_URI: <CycloneDDS><Domain id="any"><General><Interfaces><NetworkInterface name="eth0" multicast="false" /></Interfaces><AllowMulticast>false</AllowMulticast><EnableMulticastLoopback>true</EnableMulticastLoopback></General><Discovery><Peers><Peer address="192.168.16.5"/><Peer address="192.168.16.6"/><Peer address="192.168.16.7"/><Peer address="192.168.16.8"/><Peer address="192.168.16.9"/><Peer address="192.168.16.10"/></Peers><ParticipantIndex>auto</ParticipantIndex><MaxAutoParticipantIndex>200</MaxAutoParticipantIndex></Discovery></Domain></CycloneDDS>
-      
+
       publish_pose_from_ign: true
       record_rosbag: true
       world: warehouse # warehouse / maze / depot
