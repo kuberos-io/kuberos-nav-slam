@@ -82,7 +82,11 @@ ros2 launch tb4_bringup turtlebot4_ignition.launch.py world:=warehouse rviz:=fal
 
 ## Deployment with KubeROS
 
-Depending on the requirements, the entire software can be decomposed into several modules with different granularities. In this example, we use an example with only three containers. For more flexibility, the nav2_stack can also be split into multiple containers.
+Depending on the requirements, the entire software can be decomposed into several modules with different granularities. In this example, we use an example with only four containers. For more flexibility, the nav2_stack can also be split into multiple containers.
+
+![Nav2 deployment example](docs/images/Nav2_Deployment_Example.png)
+<center>Simple example: Deploy to a turlebot fleet with edge server</center>
+
 
 **Metadata**
 This part specifies the meta-information about the target fleet, robot, edge resource group.
@@ -130,6 +134,8 @@ rosModules:
 
 **Nav2 stack (extended)**
 This container contains several localization approaches, to switch between them just change the parameters in `rosParamMap`.
+
+This module can be deployed either on the onboard computer or on the edge side by setting the preference to `onboard` or `edge`.
 
 ```YAML
   - name: nav2-stack
