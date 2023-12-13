@@ -35,7 +35,8 @@ def main(args=sys.argv):
     parser.add_argument('--delay-after-first-localization', type=int, default=0., help='Delay after first localization in seconds')
 
     arguments = parser.parse_args(args_without_ros[1:])
-        
+    
+    # Initialize Navigator and listen TF tree
     navigator = BasicNavigator()
 
     tf_buffer = Buffer()
@@ -43,15 +44,20 @@ def main(args=sys.argv):
     
     pub_task_status = navigator.create_publisher(String, 'task_status', 10)
     
+    
     def publish_task_status(status):
+        """
+            Publish current task status
+        """
         pub_task_status.publish(String(data=f"{navigator.get_clock().now().nanoseconds};{time.time_ns()};{status}"))
 
+    # Startup
     publish_task_status("Starting up")
     if not arguments.goal:
         navigator.error("Missing goal pose!")
         sys.exit(-1)
 
-    
+    # Check the start pose, if using AMCL
     if arguments.localization_mode == 'amcl':
         start_x = None
         start_y = None
@@ -76,8 +82,8 @@ def main(args=sys.argv):
             navigator.error(f"Invalid start position: {start_x}, {start_y}, {start_yaw}.")
             sys.exit(-1)
         navigator.info(f"Starting from: (x={start_x}, y={start_y}, yaw={start_yaw})")
-
-    # parse goals
+    
+    # Parse waypoints to goal
     goal_vals = []
     if ';' in arguments.goal:
         goal_vals = arguments.goal.split(';')
@@ -99,6 +105,7 @@ def main(args=sys.argv):
             navigator.error("Invalid goal values in:", goal_split, "(expected floats)")
             sys.exit(-1)
     
+    # Print debug messsages
     navigator.info("Navigating to:")
     for goal in goals:
         navigator.info(f"    x={goal[0]}, y={goal[1]}, yaw={goal[2]}")
@@ -106,6 +113,7 @@ def main(args=sys.argv):
     if arguments.loop:
         navigator.info(f"Looping enabled")
 
+    # Start NAV2
     navigator.info("nav2 startup...")
     
     lifecycle_managers = []
@@ -113,11 +121,13 @@ def main(args=sys.argv):
         lifecycle_managers.append("lifecycle_manager_localization")
     elif arguments.localization_mode == 'slamtoolbox':
         lifecycle_managers.append("lifecycle_manager_slam")
-        
+    
+    # Check wether to launch navigation through lifecycle node
     if arguments.launch_navigation.lower() == 'true':
         lifecycle_managers.append("lifecycle_manager_navigation")       
     navigator.lifecycleStartup(lifecycle_managers)
      
+    # Publish the 
     if arguments.localization_mode == 'amcl':
         initial_pose = PoseStamped()
         initial_pose.header.frame_id = 'map'
@@ -154,6 +164,7 @@ def main(args=sys.argv):
         sys.exit(1)
     navigator.info("Waiting for bt_navigator: DONE")
 
+    # Convert goals to ROS PoseStamped Msg
     goal_poses = []
     for goal in goals:
         goal_pose = PoseStamped()
@@ -179,6 +190,7 @@ def main(args=sys.argv):
     #     while navigator.get_clock().now() < start:
     #         rclpy.spin_once(navigator, timeout_sec=0.01)
     
+    # Check the path planning result
     while True:
         if len(goal_poses) == 1:
             publish_task_status("Checking path")
@@ -188,6 +200,7 @@ def main(args=sys.argv):
                 navigator.info("No valid path found.")
                 sys.exit(-1)
 
+            # If path feasible, execute the motion
             print("Start navigating to Pose!")
             navigator.info("Start navigating to Pose!")
             publish_task_status("Start navigating")
@@ -197,6 +210,7 @@ def main(args=sys.argv):
             # navigator.followWaypoints(goal_poses)
             navigator.goThroughPoses(goal_poses)
 
+        # Check the task execution status
         i = 0
         while not navigator.isTaskComplete():
             # Do something with the feedback
@@ -223,7 +237,8 @@ def main(args=sys.argv):
                     else:
                         navigator.info(f'Current waypoint: {feedback.current_waypoint}')
                         publish_task_status(f'Current waypoint: {feedback.current_waypoint}')
-
+        
+        # Execution Response:
         # Do something depending on the return code
         result = navigator.getResult()
         if result == TaskResult.SUCCEEDED:
