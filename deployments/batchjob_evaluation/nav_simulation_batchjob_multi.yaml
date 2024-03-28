@@ -1,0 +1,170 @@
+apiVersion: v1
+kind: BatchJob
+metadata:
+  name: nav_sim_eval
+  subname: test-01
+  execClusters: ['kube']
+  edgeResourceGroup: ['public'] # default
+  useRobotResource: true
+  description: 'Test the localization accuracy in different scenes. 100 runs each combination'
+
+jobSpec:
+  # maxParallelism: 10
+  # maxRetry: 3
+  startupTimeout: 120 # secs
+  runningTimeout: 1200 # secs
+  
+  varyingParameters:
+    # KubeROS generates job set with all possible combinations of following parameters
+    - toRosParamMap: nav2-edge-eval-parameters
+      paramName: world
+      valueList: ['warehouse']
+
+    - toRosParamMap: nav2-edge-eval-parameters
+      paramName: world_var
+      valueList: ['D1', 'D2', 'D3', 'D4', 'D5', 'D6'] 
+
+    - toRosParamMap: nav2-edge-eval-parameters
+      paramName: localization_method
+      valueList: ['rtabmap', 'slamtoolbox', 'amcl']
+
+  lifecycleModule:
+    rosModuleName: task-control-nav-to-pose
+    repeatNum: 100
+
+
+  volume:
+    type: 'nfs' # 'localhost' / 'nfs' / 'azure_default' / 'longhorn'
+    mountPath: '/ws/rosbags'
+    requests: '20Gi'
+    name: 'dummy-name'
+    nfsServer: 'xx' # ip or hostname can be resolved by DNS
+    nfsRootPath: '/srv/nfs4'
+    username: 'ubuntu'
+
+  resources:
+    numProNode: 0
+    requests:
+      cpu: "6000m"
+      memory: "1Gi"
+    optimals:
+      cpu: "7500m"
+      memoery: "1Gi"
+
+  advances:
+    groupDataInStorage: false
+    saveLogsInVolume: true
+
+rosModules:
+  - name: gazebo-sim
+    image: <placeholder>/gazebo_sim_tb4_humble:latest
+    entrypoint: ["/entrypoint.sh x2goglx2 ros2 launch tb4_bringup turtlebot4_ignition.launch.py"]
+    sourceWs: /ws/install
+    preference: [onboard]
+
+    requirements:
+      dynamicRescheduling: false
+      privilege: true
+      nvidia: false
+
+    launchParameters: 
+      record_rosbag: {launch-parameters.record_rosbag}
+      rosbag_topics: {launch-parameters.rosbag_topics}
+      world: {launch-parameters.world}
+      world_var: {launch-parameters.world_var}
+      headless: {launch-parameters.headless}
+      start_pose: {launch_parameters.start_pose}
+      goal_poses: {launch-parameters.goal_poses}
+      experiment_name: {launch-parameters.experiment_name}
+      localization_method: {launch-parameters.localization_method}
+      # use_sim_time: {launch-parameters.use_sim_time}
+
+    rosParameters: 
+      - name: launch-parameters
+        type: key-value
+        valueFrom: nav2-edge-eval-parameters
+      - name: environment-variables
+        type: key-value
+        valueFrom: ign-env-parameters
+
+  - name: nav2_stack
+    image: <placeholder>/nav2_stack_extended:latest
+    entrypoint: ["/entrypoint.sh ros2 launch nav2_bringup_extended nav2_bringup_extended.launch.py"]
+    sourceWs: /ws/install
+    preference: [onboard]
+
+    requirements:
+      dynamicRescheduling: false
+      privilege: true
+      nvidia: false
+
+    launchParameters: 
+      world: {launch-parameters.world}
+      start_pose: {launch_parameters.start_pose}
+      goal_poses: {launch-parameters.goal_poses}
+      localization_method: {launch-parameters.localization_method}
+      use_sim_time: {launch-parameters.use_sim_time}
+      params_file: {launch-parameters.params_file}
+
+    rosParameters: 
+      - name: launch-parameters
+        type: key-value
+        valueFrom: nav2-edge-eval-parameters
+
+  - name: task-control-nav-to-pose
+    image: <placeholder>/nav_to_pose_humble:latest
+    entrypoint: ["/entrypoint.sh ros2 run nav_to_pose nav_to_pose use_sim_time:=True --launch-navigation True --localization-mode rtabmap --goal '0,-0.5,0;-2,-0.5,0;-3,-2.5,0;-0.3,-7,0'"]
+    sourceWs: /ws/install
+    preference: [onboard]
+
+    requirements:
+      dynamicRescheduling: false
+      privilege: true
+      nvidia: false
+
+
+  - name: rosbag-recorder
+    image: <placeholder>/nav_to_pose_humble:latest
+    entrypoint: ["/entrypoint.sh x2goglx2 ros2 launch tb4_bringup turtlebot4_ignition.launch.py"]
+    sourceWs: /ws/install
+    preference: [onboard]
+
+    launchParameters: 
+      record_rosbag: {launch-parameters.record_rosbag}
+      rosbag_topics: {launch-parameters.rosbag_topics}
+      experiment_name: {launch-parameters.experiment_name}
+
+    rosParameters: 
+      - name: launch-parameters
+        type: key-value
+        valueFrom: nav2-edge-eval-parameters
+
+
+rosParamMap:
+
+  - name: nav2-edge-eval-parameters
+    type: key-value
+    data:
+      RMW_IMPLEMENTATION: rmw_cyclonedds_cpp
+      record_rosbag: true
+      world: warehouse # warehouse / maze / depot
+      world_var: 'C0'
+      start_pose: '0.0,0.0,0.0'
+      goal_poses: "'0,-0.5,0;-2,-0.5,0;-3,-2.5,0;0,-6,0'"
+      localization_method: rtabmap  # slamtoolbox / amcl / rtabmap
+      loop_execution: false
+      experiment_name: maze_short_trip
+      use_sim_time: true
+      rosbag_topics: "'/groundtruth_pose/turtlebot4; /base_link_pose; /tf; /tf_static; /task_status; /diagnostics'"
+      params_file: /ws/src/nav2_bringup_extended/params/params.yaml
+
+  - name: ign-env-parameters
+    type: key-value
+    data:
+      headless: true
+      IGN_PARTITION: 'sim'
+      STARTX11: true
+      NOVNC_ENABLE: true
+      WINDOW_MANAGER_ENABLE: true
+      SIZEW: '1920'
+      SIZEH: '1080'
